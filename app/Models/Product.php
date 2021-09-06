@@ -14,4 +14,8 @@ class Product extends Model
 
     use SoftDeletes;
     protected $dates = ['deleted_at'];
+
+    public function campaigns(){
+        return $this->belongsToMany(Campaign::class, 'product_campaigns', 'products_id', 'campaigns_id');
+    }
 }

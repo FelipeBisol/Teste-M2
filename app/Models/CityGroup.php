@@ -16,6 +16,10 @@ class CityGroup extends Model
     protected $dates = ['deleted_at'];
 
     public function cities(){
-        return $this->hasMany(City::class, 'group_id');
+        return $this->hasOne(City::class, 'group_id', 'id');
+    }
+
+    public function campaigns(){
+        return $this->hasMany(Campaign::class,'group_id', 'id');
     }
 }

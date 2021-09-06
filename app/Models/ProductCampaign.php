@@ -17,14 +17,14 @@ class ProductCampaign extends Model
     protected $dates = ['deleted_at'];
 
     public function campaign(){
-        return $this->hasOne(CityGroup::class, 'id', 'campaigns_id');
+        return $this->hasOne(Campaign::class, 'id', 'campaigns_id');
     }
 
     public function product(){
-        return $this->hasOne(CityGroup::class, 'id', 'products_id');
+        return $this->hasOne(Product::class, 'id', 'products_id');
     }
 
-    public function setDiscount($price, $type, $value){
+    public static function setDiscount($price, $type, $value){
 
         if($type == "percents"){
             $price = $price - (($price * $value)/10000);

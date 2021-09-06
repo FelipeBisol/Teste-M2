@@ -15,7 +15,7 @@ class City extends Model
     use SoftDeletes;
     protected $dates = ['deleted_at'];
 
-    public function cityGroup(){
-        return $this->hasOne(CityGroup::class, 'id', 'group_id');
+    public function group(){
+        return $this->belongsTo(CityGroup::class,'group_id', 'id');
     }
 }

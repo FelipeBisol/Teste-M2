@@ -4,66 +4,65 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Http\Resources\ProductResource;
+use Illuminate\Support\Facades\Validator;
+
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    public function getAllProduct(){
-        $product = Product::select('id', 'name', 'price')->get();
-        return response($product, 200);
+    public function index(){
+        $product = Product::get();
+
+        return ProductResource::collection($product);
     }
 
-    public function createProduct(Request $request){
+    public function show($id){
+        $product = Product::findOrFail($id);
+
+        return new ProductResource($product);
+    }
+
+    public function store(Request $request){
+        $valid = Validator::make($request->all(),[
+            "name"    => "required|string",
+            "price"   => "required|int",
+        ]);
+
+        if($valid->fails()){
+            return response("Validation error", 400);
+        }
+
         $product              = new Product;
-        $product->name        = $request->name;
-        $product->price       = preg_replace("/[^0-9]/", "", $request->price);;
+        $product->name        = $request->input('name');
+        $product->price       = $request->input('price');
         $product->save();
 
-        return response()->json(["message" => "Product record created"], 201);
+        return new ProductResource($product);
     }
 
-    public function getProduct($id){
-        if (Product::where('id', $id)->exists()) {
-            $product = Product::select('id', 'name', 'price')->where('id', $id)->get();
-            return response($product, 200);
-        } else {
-            return response()->json([
-                "message" => "Product not found"
-            ], 404);
+
+    public function update(Request $request, $id){
+        $valid = Validator::make($request->all(),[
+            "name"    => "required|string",
+            "price"   => "required|int",
+        ]);
+
+        if($valid->fails()){
+            return response("Validation error", 400);
         }
+
+        $product = Product::findOrFail($request->id);
+        $product->name        = $request->input('name');
+        $product->price       = $request->input('price');
+        $product->save();
+
+        return new ProductResource($product);
     }
 
-    public function updateProduct(Request $request, $id){
-        $post = $request->all();
-        if (Product::where('id', $id)->exists()) {
-            $product = Product::find($id);
-            $product->name = is_null($post[0]['name']) ? $product->name : $post[0]['name'];
-            $product->price = is_null($post[0]['price']) ? $product->description : $post[0]['price'];
-            $product->save();
-
-            return response()->json([
-                "message" => "records updated successfully"
-            ], 200);
-        } else {
-            return response()->json([
-                "message" => "Product not found"
-            ], 404);
-
-        }
-    }
-
-    public function deleteProduct ($id) {
-        if(Product::where('id', $id)->exists()) {
-            $product = Product::find($id);
-            $product->delete();
-
-            return response()->json([
-                "message" => "records deleted"
-            ], 202);
-        } else {
-            return response()->json([
-                "message" => "Product not found"
-            ], 404);
-        }
+    public function destroy ($id) {
+        $product = Product::findOrFail($id);
+        $product->delete();
+        return new ProductResource($product);
     }
 }

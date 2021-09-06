@@ -19,6 +19,7 @@ class CreateProductCampaignsTable extends Migration
             $table->integer('discount_value');
             $table->foreignId('campaigns_id')->constrained('campaigns');
             $table->foreignId('products_id')->constrained('products');
+            $table->bigInteger('price');
             $table->timestamps();
             $table->softDeletes();
         });

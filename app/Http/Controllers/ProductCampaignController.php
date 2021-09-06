@@ -6,87 +6,81 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Campaign;
 use App\Models\ProductCampaign;
+use App\Http\Resources\ProductCampaignResource;
+use Illuminate\Support\Facades\Validator;
 
 class ProductCampaignController extends Controller
 {
-    public function getAllProductCampaign(){
-        $productCampaign = ProductCampaign::select('id', 'discount_type', 'discount_value', 'campaigns_id', 'products_id')->get();
+    public function index(){
+        $productCampaign = ProductCampaign::all();
 
-        foreach ($productCampaign as $key => $value) {
-            $productCampaign = array();
-            $productCampaign['id']   = $value->id;
-
-            $campaign = $value->campaign()->get();
-            return $campaign;
-            $product = $value->product()->find($value->id);
-            $productCampaign['product'] = $product;
-//            setDiscount($price, $type, $value)
-            $product[] = $productCampaign;
-        }
-        return response($product, 200);
+        return ProductCampaignResource::collection($productCampaign);
     }
 
-    public function createProductCampaign(Request $request){
-        $product = Product::select('id')->get();
-        $campaign = Campaign::select('id')->get();
+    public function show($id){
+        $productCampaign = ProductCampaign::findOrFail($id);
 
-        $productCampaign                        = new ProductCampaign;
-        $productCampaign->discount_type         = $request[0]['discount_type'];
-        $productCampaign->discount_value        = preg_replace("/[^0-9]/", "", $request[0]['discount_value']);
-        $productCampaign->campaigns_id          = $request[0]['campaigns_id'];
-        $productCampaign->products_id           = $request[0]['products_id'];
+        return new ProductCampaignResource($productCampaign);
+    }
 
+    public function store(Request $request){
+        $valid = Validator::make($request->all(),[
+            "discount_type"     => "required|string",
+            "discount_value"    => "required|int",
+            "campaigns_id"      => "required|exists:App\Models\Campaign,id",
+            "products_id"       => "required|exists:App\Models\Product,id"
+        ]);
+
+        if($valid->fails()){
+            return response("Validation error", 400);
+        }
+
+        $productCampaignId = $request->input('products_id');
+        $price = Product::findOrFail($productCampaignId)->price;
+        $price = ProductCampaign::setDiscount($price, $request->input('discount_type'), $request->input('discount_value'));
+
+        $productCampaign                    = new ProductCampaign;
+        $productCampaign->discount_type     = $request->input('discount_type');
+        $productCampaign->discount_value    = $request->input('discount_value');
+        $productCampaign->campaigns_id      = $request->input('campaigns_id');
+        $productCampaign->products_id       = $request->input('products_id');
+        $productCampaign->price             = $price;
         $productCampaign->save();
 
-        return response()->json(["message" => "Product Campaign record created"], 201);
-    }
-    public function getProductCampaign($id){
-        if (Campaign::where('id', $id)->exists()) {
-            $campaign = Campaign::select('id', 'name', 'status', 'group_id')->where('id', $id)->get();
-            $cityGroup = $campaign[0]->cityGroup()->first();
-            $campaign[0]['group_name'] = $cityGroup->name;
-            $campaign[0]['status'] = ($campaign[0]['status'] == 1 ? 'Campanha Ativa' : 'Campanha Inativa');
-
-            return response($campaign, 200);
-        } else {
-            return response()->json([
-                "message" => "Product Campaign not found"
-            ], 404);
-        }
+        return new ProductCampaignResource($productCampaign);
     }
 
-    public function updateProductCampaign(Request $request, $id){
-        $post = $request->all();
-        if (Campaign::where('id', $id)->exists()) {
-            $campaign = Campaign::find($id);
-            $campaign->name = is_null($post[0]['name']) ? $campaign->name : $post[0]['name'];
-            $campaign->status = is_null($post[0]['status']) ? $campaign->status : $post[0]['status'];
-            $campaign->group_id = is_null($post[0]['group_id']) ? $campaign->group_id : $post[0]['group_id'];
-            $campaign->save();
+    public function update(Request $request, $id){
+        $valid = Validator::make($request->all(),[
+            "discount_type"     => "required|string",
+            "discount_value"    => "required|int",
+            "campaigns_id"      => "required|exists:App\Models\Campaign,id",
+            "products_id"       => "required|exists:App\Models\Product,id"
+        ]);
 
-            return response()->json([
-                "message" => "records updated successfully"
-            ], 200);
-        } else {
-            return response()->json([
-                "message" => "Product Campaign not found"
-            ], 404);
-
+        if($valid->fails()){
+            return response("Validation error", 400);
         }
+
+        $productCampaignId = $request->input('products_id');
+        $price = Product::findOrFail($productCampaignId)->price;
+        $price = ProductCampaign::setDiscount($price, $request->input('discount_type'), $request->input('discount_value'));
+
+        $productCampaign                    = ProductCampaign::findOrFail($id);
+        $productCampaign->discount_type     = $request->input('discount_type');
+        $productCampaign->discount_value    = $request->input('discount_value');
+        $productCampaign->campaigns_id      = $request->input('campaigns_id');
+        $productCampaign->products_id       = $request->input('products_id');
+        $productCampaign->price             = $price;
+        $productCampaign->save();
+
+        return new ProductCampaignResource($productCampaign);
     }
 
-    public function deleteProductCampaign ($id) {
-        if(Campaign::where('id', $id)->exists()) {
-            $campaign = Campaign::find($id);
-            $campaign->delete();
+    public function destroy($id) {
+        $productCampaign = ProductCampaign::findOrFail($id);
+        $productCampaign->delete();
 
-            return response()->json([
-                "message" => "records deleted"
-            ], 202);
-        } else {
-            return response()->json([
-                "message" => "Product Campaign not found"
-            ], 404);
-        }
+        return new ProductCampaignResource($productCampaign);
     }
 }
